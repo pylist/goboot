@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"goboot/config"
 	"goboot/internal/model"
@@ -9,6 +10,11 @@ import (
 	"goboot/router"
 	"log"
 	"log/slog"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 )
 
 func main() {
@@ -57,10 +63,35 @@ func main() {
 	// Setup router
 	r := router.SetupRouter()
 
-	// Start server
+	// Create HTTP server
 	addr := fmt.Sprintf("%s:%d", config.AppConfig.Server.Host, config.AppConfig.Server.Port)
-	logger.Info("Server starting", slog.String("addr", addr))
-	if err := r.Run(addr); err != nil {
-		logger.Error("Failed to start server", slog.Any("error", err))
+	srv := &http.Server{
+		Addr:    addr,
+		Handler: r,
 	}
+
+	// Start server in goroutine
+	go func() {
+		logger.Info("Server starting", slog.String("addr", addr))
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			logger.Error("Failed to start server", slog.Any("error", err))
+		}
+	}()
+
+	// Wait for interrupt signal
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+
+	logger.Info("Shutting down server...")
+
+	// Give outstanding requests 10 seconds to complete
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if err := srv.Shutdown(ctx); err != nil {
+		logger.Error("Server forced to shutdown", slog.Any("error", err))
+	}
+
+	logger.Info("Server exited")
 }
