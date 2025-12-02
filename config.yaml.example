@@ -1,0 +1,47 @@
+# 服务器配置
+server:
+  host: 127.0.0.1
+  port: 8080
+  mode: debug # debug, release, test
+  trusted_proxies: [] # 可信代理IP列表，配置示例:
+                      # []                              - 不信任任何代理
+                      # ["127.0.0.1"]                   - 信任本机代理
+                      # ["192.168.1.10"]                - 信任指定IP
+                      # ["192.168.0.0/16"]              - 信任IP段
+                      # ["0.0.0.0/0", "::/0"]           - 信任所有（不安全，仅开发环境使用）
+
+# MySQL 数据库配置
+mysql:
+  host: 127.0.0.1
+  port: 3306
+  user: root
+  password: your_password
+  database: goboot
+  charset: utf8mb4
+  max_idle_conns: 10   # 最大空闲连接数
+  max_open_conns: 100  # 最大打开连接数
+
+# Redis 配置
+redis:
+  host: 127.0.0.1
+  port: 6379
+  password: ""
+  db: 0
+  pool_size: 100
+
+# JWT 配置
+jwt:
+  secret: your-access-secret-key-here           # Access Token 密钥（请修改为随机字符串）
+  access_expire: 2                              # Access Token 过期时间（小时）
+  refresh_expire: 168                           # Refresh Token 过期时间（小时）7天
+  refresh_secret: your-refresh-secret-key-here  # Refresh Token 密钥（请修改为随机字符串）
+
+# 日志配置
+log:
+  level: debug      # debug, info, warn, error
+  filename: logs/app.log
+  max_size: 100     # 单个日志文件最大大小（MB）
+  max_backups: 10   # 保留旧日志文件数量
+  max_age: 30       # 保留天数
+  compress: true    # 是否压缩旧日志
+  console: true     # 是否同时输出到控制台

@@ -13,9 +13,10 @@ type Config struct {
 }
 
 type ServerConfig struct {
-	Host string `mapstructure:"host"`
-	Port int    `mapstructure:"port"`
-	Mode string `mapstructure:"mode"`
+	Host           string   `mapstructure:"host"`
+	Port           int      `mapstructure:"port"`
+	Mode           string   `mapstructure:"mode"`
+	TrustedProxies []string `mapstructure:"trusted_proxies"` // 可信代理IP列表，空则不信任任何代理
 }
 
 type MySQLConfig struct {

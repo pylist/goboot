@@ -13,9 +13,12 @@ func SetupRouter() *gin.Engine {
 
 	r := gin.New()
 
-	// 设置可信代理，避免安全警告
-	// 生产环境应设置为实际的代理 IP，如: r.SetTrustedProxies([]string{"192.168.1.1"})
-	r.SetTrustedProxies(nil) // nil 表示不信任任何代理，直接使用远程地址
+	// 设置可信代理
+	if len(config.AppConfig.Server.TrustedProxies) > 0 {
+		r.SetTrustedProxies(config.AppConfig.Server.TrustedProxies)
+	} else {
+		r.SetTrustedProxies(nil) // 不信任任何代理，直接使用远程地址
+	}
 
 	r.Use(middleware.Logger())
 	r.Use(middleware.Recovery())
