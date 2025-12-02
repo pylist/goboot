@@ -6,6 +6,8 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"runtime"
+	"time"
 
 	"gopkg.in/natefinch/lumberjack.v2"
 )
@@ -86,37 +88,50 @@ func InitLogger(cfg *Config) error {
 	return nil
 }
 
+// log 内部日志方法，skip 用于指定跳过的调用栈层数
+func log(ctx context.Context, level slog.Level, skip int, msg string, args ...any) {
+	if !Log.Enabled(ctx, level) {
+		return
+	}
+	var pcs [1]uintptr
+	// skip: runtime.Callers -> log -> Debug/Info/Warn/Error -> 实际调用者
+	runtime.Callers(skip, pcs[:])
+	r := slog.NewRecord(time.Now(), level, msg, pcs[0])
+	r.Add(args...)
+	_ = Log.Handler().Handle(ctx, r)
+}
+
 // 便捷方法
 func Debug(msg string, args ...any) {
-	Log.Debug(msg, args...)
+	log(context.Background(), slog.LevelDebug, 3, msg, args...)
 }
 
 func Info(msg string, args ...any) {
-	Log.Info(msg, args...)
+	log(context.Background(), slog.LevelInfo, 3, msg, args...)
 }
 
 func Warn(msg string, args ...any) {
-	Log.Warn(msg, args...)
+	log(context.Background(), slog.LevelWarn, 3, msg, args...)
 }
 
 func Error(msg string, args ...any) {
-	Log.Error(msg, args...)
+	log(context.Background(), slog.LevelError, 3, msg, args...)
 }
 
 func DebugContext(ctx context.Context, msg string, args ...any) {
-	Log.DebugContext(ctx, msg, args...)
+	log(ctx, slog.LevelDebug, 3, msg, args...)
 }
 
 func InfoContext(ctx context.Context, msg string, args ...any) {
-	Log.InfoContext(ctx, msg, args...)
+	log(ctx, slog.LevelInfo, 3, msg, args...)
 }
 
 func WarnContext(ctx context.Context, msg string, args ...any) {
-	Log.WarnContext(ctx, msg, args...)
+	log(ctx, slog.LevelWarn, 3, msg, args...)
 }
 
 func ErrorContext(ctx context.Context, msg string, args ...any) {
-	Log.ErrorContext(ctx, msg, args...)
+	log(ctx, slog.LevelError, 3, msg, args...)
 }
 
 // With 返回带有附加属性的新logger
