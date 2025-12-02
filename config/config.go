@@ -5,11 +5,12 @@ import (
 )
 
 type Config struct {
-	Server ServerConfig `mapstructure:"server"`
-	MySQL  MySQLConfig  `mapstructure:"mysql"`
-	Redis  RedisConfig  `mapstructure:"redis"`
-	JWT    JWTConfig    `mapstructure:"jwt"`
-	Log    LogConfig    `mapstructure:"log"`
+	Server    ServerConfig    `mapstructure:"server"`
+	MySQL     MySQLConfig     `mapstructure:"mysql"`
+	Redis     RedisConfig     `mapstructure:"redis"`
+	JWT       JWTConfig       `mapstructure:"jwt"`
+	Log       LogConfig       `mapstructure:"log"`
+	RateLimit RateLimitConfig `mapstructure:"rate_limit"`
 }
 
 type ServerConfig struct {
@@ -53,6 +54,12 @@ type LogConfig struct {
 	MaxAge     int    `mapstructure:"max_age"`
 	Compress   bool   `mapstructure:"compress"`
 	Console    bool   `mapstructure:"console"`
+}
+
+type RateLimitConfig struct {
+	Enabled  bool `mapstructure:"enabled"`  // 是否启用限流
+	Requests int  `mapstructure:"requests"` // 时间窗口内允许的请求数
+	Window   int  `mapstructure:"window"`   // 时间窗口（秒）
 }
 
 var AppConfig *Config

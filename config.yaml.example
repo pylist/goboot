@@ -45,3 +45,9 @@ log:
   max_age: 30       # 保留天数
   compress: true    # 是否压缩旧日志
   console: true     # 是否同时输出到控制台
+
+# 接口限流配置
+rate_limit:
+  enabled: true     # 是否启用限流
+  requests: 100     # 时间窗口内允许的最大请求数
+  window: 60        # 时间窗口（秒），如: 100次/60秒

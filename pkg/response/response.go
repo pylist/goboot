@@ -59,6 +59,15 @@ func Forbidden(c *gin.Context, message string) {
 	})
 }
 
+// TooManyRequests 请求过于频繁 HTTP 429
+func TooManyRequests(c *gin.Context, message string) {
+	c.JSON(http.StatusTooManyRequests, Response{
+		Code:    http.StatusTooManyRequests,
+		Message: message,
+		Data:    nil,
+	})
+}
+
 type PageResult struct {
 	Items    interface{} `json:"items"`
 	Total    int64       `json:"total"`

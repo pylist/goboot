@@ -10,6 +10,8 @@ import (
 
 var RDB *redis.Client
 
+type Z = redis.Z
+
 func InitRedis() error {
 	cfg := config.AppConfig.Redis
 	RDB = redis.NewClient(&redis.Options{

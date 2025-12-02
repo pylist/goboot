@@ -23,6 +23,7 @@ func SetupRouter() *gin.Engine {
 	r.Use(middleware.Logger())
 	r.Use(middleware.Recovery())
 	r.Use(middleware.Cors())
+	r.Use(middleware.RateLimiter())
 
 	userHandler := handler.NewUserHandler()
 
