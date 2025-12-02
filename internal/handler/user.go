@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"fmt"
+	"goboot/internal/model"
 	"goboot/internal/service"
 	"goboot/pkg/response"
 	"strconv"
@@ -9,12 +11,14 @@ import (
 )
 
 type UserHandler struct {
-	userService *service.UserService
+	userService  *service.UserService
+	auditService *service.AuditService
 }
 
 func NewUserHandler() *UserHandler {
 	return &UserHandler{
-		userService: service.NewUserService(),
+		userService:  service.NewUserService(),
+		auditService: service.NewAuditService(),
 	}
 }
 
@@ -40,10 +44,12 @@ func (h *UserHandler) Register(c *gin.Context) {
 
 	user, err := h.userService.Register(req.Username, req.Password, req.Nickname, req.Phone, req.Email)
 	if err != nil {
+		h.auditService.LogFail(c, model.ActionRegister, model.ModuleAuth, req.Username, err.Error())
 		response.Fail(c, err.Error())
 		return
 	}
 
+	h.auditService.LogSuccess(c, model.ActionRegister, model.ModuleAuth, req.Username, "用户注册成功")
 	response.SuccessWithMessage(c, "注册成功", user)
 }
 
@@ -56,9 +62,15 @@ func (h *UserHandler) Login(c *gin.Context) {
 
 	tokenPair, user, err := h.userService.Login(req.Username, req.Password)
 	if err != nil {
+		h.auditService.LogFail(c, model.ActionLogin, model.ModuleAuth, req.Username, err.Error())
 		response.Fail(c, err.Error())
 		return
 	}
+
+	// 登录成功后设置用户信息用于审计日志
+	c.Set("userID", user.ID)
+	c.Set("username", user.Username)
+	h.auditService.LogSuccess(c, model.ActionLogin, model.ModuleAuth, req.Username, "用户登录成功")
 
 	response.Success(c, gin.H{
 		"accessToken":  tokenPair.AccessToken,
@@ -142,10 +154,12 @@ func (h *UserHandler) ChangePassword(c *gin.Context) {
 
 	err := h.userService.ChangePassword(userID, req.OldPassword, req.NewPassword)
 	if err != nil {
+		h.auditService.LogFail(c, model.ActionChangePassword, model.ModuleUser, fmt.Sprintf("%d", userID), err.Error())
 		response.Fail(c, err.Error())
 		return
 	}
 
+	h.auditService.LogSuccess(c, model.ActionChangePassword, model.ModuleUser, fmt.Sprintf("%d", userID), "用户修改密码")
 	response.SuccessWithMessage(c, "密码修改成功", nil)
 }
 
@@ -171,6 +185,7 @@ func (h *UserHandler) Logout(c *gin.Context) {
 		return
 	}
 
+	h.auditService.LogSuccess(c, model.ActionLogout, model.ModuleAuth, fmt.Sprintf("%d", userID), "用户退出登录")
 	response.SuccessWithMessage(c, "退出成功", nil)
 }
 
@@ -259,10 +274,12 @@ func (h *UserHandler) AdminCreateUser(c *gin.Context) {
 
 	user, err := h.userService.AdminCreateUser(req.Username, req.Password, req.Nickname, req.Phone, req.Email, req.Role, req.Status)
 	if err != nil {
+		h.auditService.LogFail(c, model.ActionCreateUser, model.ModuleAdmin, req.Username, err.Error())
 		response.Fail(c, err.Error())
 		return
 	}
 
+	h.auditService.LogSuccess(c, model.ActionCreateUser, model.ModuleAdmin, req.Username, fmt.Sprintf("创建用户: %s", req.Username))
 	response.Success(c, user)
 }
 
@@ -276,10 +293,12 @@ func (h *UserHandler) AdminUpdateUser(c *gin.Context) {
 
 	user, err := h.userService.AdminUpdateUser(req.ID, req.Nickname, req.Phone, req.Email, req.Avatar, req.Role, req.Status)
 	if err != nil {
+		h.auditService.LogFail(c, model.ActionUpdateUser, model.ModuleAdmin, fmt.Sprintf("%d", req.ID), err.Error())
 		response.Fail(c, err.Error())
 		return
 	}
 
+	h.auditService.LogSuccess(c, model.ActionUpdateUser, model.ModuleAdmin, fmt.Sprintf("%d", req.ID), fmt.Sprintf("更新用户ID: %d", req.ID))
 	response.Success(c, user)
 }
 
@@ -292,10 +311,12 @@ func (h *UserHandler) AdminDeleteUser(c *gin.Context) {
 	}
 
 	if err := h.userService.AdminDeleteUser(req.ID); err != nil {
+		h.auditService.LogFail(c, model.ActionDeleteUser, model.ModuleAdmin, fmt.Sprintf("%d", req.ID), err.Error())
 		response.Fail(c, err.Error())
 		return
 	}
 
+	h.auditService.LogSuccess(c, model.ActionDeleteUser, model.ModuleAdmin, fmt.Sprintf("%d", req.ID), fmt.Sprintf("删除用户ID: %d", req.ID))
 	response.SuccessWithMessage(c, "删除成功", nil)
 }
 
@@ -326,10 +347,12 @@ func (h *UserHandler) AdminResetPassword(c *gin.Context) {
 	}
 
 	if err := h.userService.AdminResetPassword(req.ID, req.NewPassword); err != nil {
+		h.auditService.LogFail(c, model.ActionResetPassword, model.ModuleAdmin, fmt.Sprintf("%d", req.ID), err.Error())
 		response.Fail(c, err.Error())
 		return
 	}
 
+	h.auditService.LogSuccess(c, model.ActionResetPassword, model.ModuleAdmin, fmt.Sprintf("%d", req.ID), fmt.Sprintf("重置用户密码ID: %d", req.ID))
 	response.SuccessWithMessage(c, "密码重置成功", nil)
 }
 
@@ -342,9 +365,15 @@ func (h *UserHandler) AdminUpdateUserStatus(c *gin.Context) {
 	}
 
 	if err := h.userService.AdminUpdateUserStatus(req.ID, req.Status); err != nil {
+		h.auditService.LogFail(c, model.ActionUpdateStatus, model.ModuleAdmin, fmt.Sprintf("%d", req.ID), err.Error())
 		response.Fail(c, err.Error())
 		return
 	}
 
+	statusText := "禁用"
+	if req.Status == 1 {
+		statusText = "启用"
+	}
+	h.auditService.LogSuccess(c, model.ActionUpdateStatus, model.ModuleAdmin, fmt.Sprintf("%d", req.ID), fmt.Sprintf("更新用户状态为%s, ID: %d", statusText, req.ID))
 	response.SuccessWithMessage(c, "状态更新成功", nil)
 }

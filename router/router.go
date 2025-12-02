@@ -29,6 +29,7 @@ func SetupRouter() *gin.Engine {
 	r.GET("/health", handler.HealthCheck)
 
 	userHandler := handler.NewUserHandler()
+	auditHandler := handler.NewAuditHandler()
 
 	api := r.Group("/api")
 	{
@@ -38,7 +39,6 @@ func SetupRouter() *gin.Engine {
 		userAuth.POST("/login", userHandler.Login)
 		userAuth.POST("/refreshToken", userHandler.RefreshToken)
 		userAuth.POST("/logout", userHandler.Logout)
-
 
 		// User authenticated routes
 		auth := api.Group("")
@@ -62,6 +62,9 @@ func SetupRouter() *gin.Engine {
 			admin.POST("/user/delete", userHandler.AdminDeleteUser)
 			admin.POST("/user/resetPassword", userHandler.AdminResetPassword)
 			admin.POST("/user/updateStatus", userHandler.AdminUpdateUserStatus)
+
+			// Audit log
+			admin.POST("/audit/list", auditHandler.GetAuditLogs)
 		}
 	}
 
