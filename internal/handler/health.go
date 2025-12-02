@@ -50,3 +50,7 @@ func HealthCheck(c *gin.Context) {
 
 	c.JSON(httpStatus, status)
 }
+
+func Ping(c *gin.Context) {
+	c.String(http.StatusOK, "pong")
+}

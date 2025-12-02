@@ -17,6 +17,9 @@ func Logger() gin.HandlerFunc {
 		c.Next()
 
 		latency := time.Since(start)
+		if latency > time.Minute {
+			latency = latency.Truncate(time.Second)
+		}
 		status := c.Writer.Status()
 		clientIP := c.ClientIP()
 		method := c.Request.Method
@@ -29,7 +32,7 @@ func Logger() gin.HandlerFunc {
 			slog.String("query", query),
 			slog.String("ip", clientIP),
 			slog.String("user-agent", userAgent),
-			slog.Duration("latency", latency),
+			slog.String("latency", latency.String()),
 		}
 
 		if len(c.Errors) > 0 {
