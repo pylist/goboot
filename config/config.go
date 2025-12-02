@@ -11,6 +11,7 @@ type Config struct {
 	JWT       JWTConfig       `mapstructure:"jwt"`
 	Log       LogConfig       `mapstructure:"log"`
 	RateLimit RateLimitConfig `mapstructure:"rate_limit"`
+	Email     EmailConfig     `mapstructure:"email"`
 }
 
 type ServerConfig struct {
@@ -60,6 +61,19 @@ type RateLimitConfig struct {
 	Enabled  bool `mapstructure:"enabled"`  // 是否启用限流
 	Requests int  `mapstructure:"requests"` // 时间窗口内允许的请求数
 	Window   int  `mapstructure:"window"`   // 时间窗口（秒）
+}
+
+type EmailConfig struct {
+	Enabled    bool   `mapstructure:"enabled"`     // 是否启用邮件服务
+	Host       string `mapstructure:"host"`        // SMTP 服务器地址
+	Port       int    `mapstructure:"port"`        // SMTP 端口
+	Username   string `mapstructure:"username"`    // 邮箱账号
+	Password   string `mapstructure:"password"`    // 邮箱密码或授权码
+	FromName   string `mapstructure:"from_name"`   // 发件人名称
+	FromAddr   string `mapstructure:"from_addr"`   // 发件人地址
+	SSL        bool   `mapstructure:"ssl"`         // 是否启用 SSL
+	ResetURL   string `mapstructure:"reset_url"`   // 密码重置页面地址
+	ResetExpire int   `mapstructure:"reset_expire"` // 重置链接过期时间（分钟）
 }
 
 var AppConfig *Config

@@ -30,6 +30,7 @@ func SetupRouter() *gin.Engine {
 
 	userHandler := handler.NewUserHandler()
 	auditHandler := handler.NewAuditHandler()
+	emailHandler := handler.NewEmailHandler()
 
 	api := r.Group("/api")
 	{
@@ -39,6 +40,8 @@ func SetupRouter() *gin.Engine {
 		userAuth.POST("/login", userHandler.Login)
 		userAuth.POST("/refreshToken", userHandler.RefreshToken)
 		userAuth.POST("/logout", userHandler.Logout)
+		userAuth.POST("/forgotPassword", emailHandler.ForgotPassword)
+		userAuth.POST("/resetPassword", emailHandler.ResetPassword)
 
 		// User authenticated routes
 		auth := api.Group("")

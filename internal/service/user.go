@@ -90,6 +90,14 @@ func (s *UserService) GetUserByID(id uint) (*model.User, error) {
 	return &user, nil
 }
 
+func (s *UserService) GetUserByEmail(email string) (*model.User, error) {
+	var user model.User
+	if err := database.DB.Where("email = ?", email).First(&user).Error; err != nil {
+		return nil, errors.New("用户不存在")
+	}
+	return &user, nil
+}
+
 func (s *UserService) UpdateProfile(id uint, nickname, phone, email, avatar string) (*model.User, error) {
 	var user model.User
 	if err := database.DB.First(&user, id).Error; err != nil {
