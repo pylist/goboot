@@ -25,6 +25,9 @@ func SetupRouter() *gin.Engine {
 	r.Use(middleware.Cors())
 	r.Use(middleware.RateLimiter())
 
+	// 健康检查接口
+	r.GET("/health", handler.HealthCheck)
+
 	userHandler := handler.NewUserHandler()
 
 	api := r.Group("/api")
