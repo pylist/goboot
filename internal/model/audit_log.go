@@ -32,15 +32,18 @@ const (
 	ActionDeleteUser     = "delete_user"    // 删除用户
 	ActionUpdateStatus   = "update_status"  // 更新状态
 	ActionUpload         = "upload"         // 上传文件
-	ActionDelete         = "delete"         // 删除文件
+	ActionDelete         = "delete"         // 删除
+	ActionCreate         = "create"         // 创建
+	ActionUpdate         = "update"         // 更新
 )
 
 // 模块常量
 const (
-	ModuleAuth  = "auth"  // 认证模块
-	ModuleUser  = "user"  // 用户模块
-	ModuleAdmin = "admin" // 管理模块
-	ModuleFile  = "file"  // 文件模块
+	ModuleAuth   = "auth"   // 认证模块
+	ModuleUser   = "user"   // 用户模块
+	ModuleAdmin  = "admin"  // 管理模块
+	ModuleFile   = "file"   // 文件模块
+	ModuleConfig = "config" // 配置模块
 )
 
 // CreateAuditLog 创建审计日志

@@ -25,6 +25,7 @@ func SetupRouter(app *fiber.App) {
 	auditHandler := handler.NewAuditHandler()
 	emailHandler := handler.NewEmailHandler()
 	uploadHandler := handler.NewUploadHandler()
+	configHandler := handler.NewConfigHandler()
 
 	api := app.Group("/api")
 
@@ -36,6 +37,9 @@ func SetupRouter(app *fiber.App) {
 	userAuth.Post("/logout", userHandler.Logout)
 	userAuth.Post("/forgotPassword", emailHandler.ForgotPassword)
 	userAuth.Post("/resetPassword", emailHandler.ResetPassword)
+
+	// 公开配置(无需登录)
+	api.Get("/config/public", configHandler.GetPublicConfigs)
 
 	// User authenticated routes
 	auth := api.Group("", middleware.JWTAuth())
@@ -64,4 +68,16 @@ func SetupRouter(app *fiber.App) {
 
 	// Audit log
 	admin.Post("/audit/list", auditHandler.GetAuditLogs)
+
+	// Config management (系统配置管理)
+	configAdmin := admin.Group("/config")
+	configAdmin.Get("/list", configHandler.GetAllConfigs)
+	configAdmin.Get("/group", configHandler.GetConfigsByGroup)
+	configAdmin.Post("/add", configHandler.CreateConfig)
+	configAdmin.Post("/update", configHandler.UpdateConfig)
+	configAdmin.Post("/delete", configHandler.DeleteConfig)
+	configAdmin.Post("/batchUpdate", configHandler.BatchUpdateConfigs)
+	configAdmin.Post("/refresh", configHandler.RefreshCache)
+	configAdmin.Get("/email", configHandler.GetEmailConfig)
+	configAdmin.Post("/email", configHandler.UpdateEmailConfig)
 }

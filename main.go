@@ -60,6 +60,14 @@ func main() {
 	}
 	logger.Info("Database migrated successfully")
 
+	// Initialize default system configs
+	if err := model.InitDefaultConfigs(); err != nil {
+		logger.Error("Failed to init default configs", slog.Any("error", err))
+	}
+
+	// Load system configs to cache
+	service.GetConfigService()
+
 	// Create Fiber app
 	app := fiber.New()
 

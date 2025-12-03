@@ -5,36 +5,39 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
-	"goboot/config"
-	"goboot/pkg/database"
-	"goboot/pkg/logger"
 	"log/slog"
 	"net/smtp"
 	"strings"
 	"time"
 
+	"goboot/pkg/database"
+	"goboot/pkg/logger"
+
 	"github.com/google/uuid"
 )
 
-type EmailService struct {
-	config *config.EmailConfig
-}
+type EmailService struct{}
 
 func NewEmailService() *EmailService {
-	return &EmailService{
-		config: &config.AppConfig.Email,
-	}
+	return &EmailService{}
+}
+
+// getConfig 获取邮件配置(从数据库)
+func (s *EmailService) getConfig() *EmailConfig {
+	return GetConfigService().GetEmailConfig()
 }
 
 // SendMail 发送邮件
 func (s *EmailService) SendMail(to, subject, body string) error {
-	if !s.config.Enabled {
+	cfg := s.getConfig()
+
+	if !cfg.Enabled {
 		return errors.New("邮件服务未启用")
 	}
 
 	// 构建邮件头
 	header := make(map[string]string)
-	header["From"] = fmt.Sprintf("%s <%s>", s.config.FromName, s.config.FromAddr)
+	header["From"] = fmt.Sprintf("%s <%s>", cfg.FromName, cfg.FromAddr)
 	header["To"] = to
 	header["Subject"] = subject
 	header["MIME-Version"] = "1.0"
@@ -49,21 +52,21 @@ func (s *EmailService) SendMail(to, subject, body string) error {
 	message.WriteString(body)
 
 	// 发送邮件
-	addr := fmt.Sprintf("%s:%d", s.config.Host, s.config.Port)
-	auth := smtp.PlainAuth("", s.config.Username, s.config.Password, s.config.Host)
+	addr := fmt.Sprintf("%s:%d", cfg.Host, cfg.Port)
+	auth := smtp.PlainAuth("", cfg.Username, cfg.Password, cfg.Host)
 
-	if s.config.SSL {
-		return s.sendMailSSL(addr, auth, s.config.FromAddr, []string{to}, []byte(message.String()))
+	if cfg.SSL {
+		return s.sendMailSSL(addr, auth, cfg.FromAddr, []string{to}, []byte(message.String()), cfg.Host)
 	}
 
-	return smtp.SendMail(addr, auth, s.config.FromAddr, []string{to}, []byte(message.String()))
+	return smtp.SendMail(addr, auth, cfg.FromAddr, []string{to}, []byte(message.String()))
 }
 
 // sendMailSSL 通过 SSL 发送邮件
-func (s *EmailService) sendMailSSL(addr string, auth smtp.Auth, from string, to []string, msg []byte) error {
+func (s *EmailService) sendMailSSL(addr string, auth smtp.Auth, from string, to []string, msg []byte, host string) error {
 	tlsConfig := &tls.Config{
 		InsecureSkipVerify: true,
-		ServerName:         s.config.Host,
+		ServerName:         host,
 	}
 
 	conn, err := tls.Dial("tcp", addr, tlsConfig)
@@ -72,7 +75,7 @@ func (s *EmailService) sendMailSSL(addr string, auth smtp.Auth, from string, to 
 	}
 	defer conn.Close()
 
-	client, err := smtp.NewClient(conn, s.config.Host)
+	client, err := smtp.NewClient(conn, host)
 	if err != nil {
 		return fmt.Errorf("创建SMTP客户端失败: %v", err)
 	}
@@ -110,13 +113,15 @@ func (s *EmailService) sendMailSSL(addr string, auth smtp.Auth, from string, to 
 
 // SendPasswordResetEmail 发送密码重置邮件
 func (s *EmailService) SendPasswordResetEmail(email, username string, userID uint) error {
+	cfg := s.getConfig()
+
 	// 生成重置 token
 	token := uuid.New().String()
 
 	// 存储 token 到 Redis，设置过期时间
 	ctx := context.Background()
 	key := fmt.Sprintf("password_reset:%s", token)
-	expire := time.Duration(s.config.ResetExpire) * time.Minute
+	expire := time.Duration(cfg.ResetExpire) * time.Minute
 
 	// 存储用户ID
 	if err := database.RDB.Set(ctx, key, userID, expire).Err(); err != nil {
@@ -124,7 +129,7 @@ func (s *EmailService) SendPasswordResetEmail(email, username string, userID uin
 	}
 
 	// 构建重置链接
-	resetLink := fmt.Sprintf("%s?token=%s", s.config.ResetURL, token)
+	resetLink := fmt.Sprintf("%s?token=%s", cfg.ResetURL, token)
 
 	// 邮件内容
 	body := fmt.Sprintf(`
@@ -150,7 +155,7 @@ func (s *EmailService) SendPasswordResetEmail(email, username string, userID uin
     </div>
 </body>
 </html>
-`, username, resetLink, resetLink, s.config.ResetExpire)
+`, username, resetLink, resetLink, cfg.ResetExpire)
 
 	// 异步发送邮件
 	go func() {
