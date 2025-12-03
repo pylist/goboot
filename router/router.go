@@ -23,7 +23,7 @@ func SetupRouter() *gin.Engine {
 	r.Use(middleware.Logger())
 	r.Use(middleware.Recovery())
 	r.Use(middleware.Cors())
-	// r.Use(middleware.RateLimiter())
+	r.Use(middleware.RateLimiter())
 	// 健康检查接口
 	r.GET("/ping", handler.Ping)
 	r.GET("/health", handler.HealthCheck)

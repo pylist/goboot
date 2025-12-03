@@ -1,7 +1,6 @@
 package middleware
 
 import (
-	"context"
 	"fmt"
 	"goboot/config"
 	"goboot/pkg/database"
@@ -74,7 +73,7 @@ func getRateLimitKey(c *gin.Context) string {
 
 // isAllowed 使用滑动窗口算法检查是否允许请求
 func isAllowed(c *gin.Context, key string, maxRequests int, windowSeconds int) (bool, error) {
-	ctx := context.Background()
+	ctx := c.Request.Context()
 	now := time.Now().UnixMilli()
 	window := int64(windowSeconds) * 1000
 
