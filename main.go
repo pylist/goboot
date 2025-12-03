@@ -73,17 +73,27 @@ func main() {
 
 	// Start server in goroutine
 	addr := fmt.Sprintf("%s:%d", config.AppConfig.Server.Host, config.AppConfig.Server.Port)
+	serverErr := make(chan error, 1)
 	go func() {
 		logger.Info("Server starting", slog.String("addr", addr))
 		if err := app.Listen(addr); err != nil {
 			logger.Error("Failed to start server", slog.Any("error", err))
+			serverErr <- err
 		}
 	}()
 
-	// Wait for interrupt signal
+	// Wait for interrupt signal or server error
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
+	select {
+	case <-quit:
+		// Normal shutdown
+	case err := <-serverErr:
+		// Server failed to start
+		logger.Error("Server startup failed, exiting", slog.Any("error", err))
+		cronSvc.Stop()
+		os.Exit(1)
+	}
 
 	logger.Info("Shutting down server...")
 
