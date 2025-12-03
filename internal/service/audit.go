@@ -6,7 +6,7 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/gin-gonic/gin"
+	"github.com/gofiber/fiber/v3"
 )
 
 type AuditService struct{}
@@ -16,15 +16,15 @@ func NewAuditService() *AuditService {
 }
 
 // Log 记录审计日志
-func (s *AuditService) Log(c *gin.Context, action, module, target, detail string, status int) {
+func (s *AuditService) Log(c fiber.Ctx, action, module, target, detail string, status int) {
 	var userID uint
 	var username string
 
 	// 获取当前用户信息
-	if id, exists := c.Get("userID"); exists {
+	if id := c.Locals("userID"); id != nil {
 		userID = id.(uint)
 	}
-	if name, exists := c.Get("username"); exists {
+	if name := c.Locals("username"); name != nil {
 		username = name.(string)
 	}
 
@@ -35,8 +35,8 @@ func (s *AuditService) Log(c *gin.Context, action, module, target, detail string
 		Module:    module,
 		Target:    target,
 		Detail:    detail,
-		IP:        c.ClientIP(),
-		UserAgent: c.Request.UserAgent(),
+		IP:        c.IP(),
+		UserAgent: string(c.Request().Header.UserAgent()),
 		Status:    status,
 	}
 
@@ -49,12 +49,12 @@ func (s *AuditService) Log(c *gin.Context, action, module, target, detail string
 }
 
 // LogSuccess 记录成功操作
-func (s *AuditService) LogSuccess(c *gin.Context, action, module, target, detail string) {
+func (s *AuditService) LogSuccess(c fiber.Ctx, action, module, target, detail string) {
 	s.Log(c, action, module, target, detail, 1)
 }
 
 // LogFail 记录失败操作
-func (s *AuditService) LogFail(c *gin.Context, action, module, target, detail string) {
+func (s *AuditService) LogFail(c fiber.Ctx, action, module, target, detail string) {
 	s.Log(c, action, module, target, detail, 0)
 }
 
@@ -64,11 +64,11 @@ func (s *AuditService) GetLogs(req *AuditLogListRequest) ([]model.AuditLog, int6
 }
 
 type AuditLogListRequest struct {
-	Page      int    `json:"page"`
-	PageSize  int    `json:"pageSize"`
-	UserID    uint   `json:"userId"`
-	Action    string `json:"action"`
-	Module    string `json:"module"`
+	Page      int        `json:"page"`
+	PageSize  int        `json:"pageSize"`
+	UserID    uint       `json:"userId"`
+	Action    string     `json:"action"`
+	Module    string     `json:"module"`
 	StartTime *time.Time `json:"startTime"`
 	EndTime   *time.Time `json:"endTime"`
 }

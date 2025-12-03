@@ -5,25 +5,25 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/gin-gonic/gin"
+	"github.com/gofiber/fiber/v3"
 )
 
-func Logger() gin.HandlerFunc {
-	return func(c *gin.Context) {
+func Logger() fiber.Handler {
+	return func(c fiber.Ctx) error {
 		start := time.Now()
-		path := c.Request.URL.Path
-		query := c.Request.URL.RawQuery
+		path := c.Path()
+		query := string(c.Request().URI().QueryString())
 
-		c.Next()
+		err := c.Next()
 
 		latency := time.Since(start)
 		if latency > time.Minute {
 			latency = latency.Truncate(time.Second)
 		}
-		status := c.Writer.Status()
-		clientIP := c.ClientIP()
-		method := c.Request.Method
-		userAgent := c.Request.UserAgent()
+		status := c.Response().StatusCode()
+		clientIP := c.IP()
+		method := c.Method()
+		userAgent := string(c.Request().Header.UserAgent())
 
 		attrs := []any{
 			slog.Int("status", status),
@@ -35,8 +35,8 @@ func Logger() gin.HandlerFunc {
 			slog.String("latency", latency.String()),
 		}
 
-		if len(c.Errors) > 0 {
-			attrs = append(attrs, slog.String("errors", c.Errors.ByType(gin.ErrorTypePrivate).String()))
+		if err != nil {
+			attrs = append(attrs, slog.String("error", err.Error()))
 			logger.Error("Request error", attrs...)
 		} else if status >= 500 {
 			logger.Error("Server error", attrs...)
@@ -45,21 +45,23 @@ func Logger() gin.HandlerFunc {
 		} else {
 			logger.Info("Request", attrs...)
 		}
+
+		return err
 	}
 }
 
-func Recovery() gin.HandlerFunc {
-	return func(c *gin.Context) {
+func Recovery() fiber.Handler {
+	return func(c fiber.Ctx) error {
 		defer func() {
 			if err := recover(); err != nil {
 				logger.Error("Panic recovered",
 					slog.Any("error", err),
-					slog.String("path", c.Request.URL.Path),
-					slog.String("method", c.Request.Method),
+					slog.String("path", c.Path()),
+					slog.String("method", c.Method()),
 				)
-				c.AbortWithStatus(500)
+				_ = c.SendStatus(fiber.StatusInternalServerError)
 			}
 		}()
-		c.Next()
+		return c.Next()
 	}
 }

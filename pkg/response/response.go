@@ -1,9 +1,7 @@
 package response
 
 import (
-	"net/http"
-
-	"github.com/gin-gonic/gin"
+	"github.com/gofiber/fiber/v3"
 )
 
 type Response struct {
@@ -17,52 +15,52 @@ const (
 	ERROR   = 1
 )
 
-func Result(c *gin.Context, code int, message string, data interface{}) {
-	c.JSON(http.StatusOK, Response{
+func Result(c fiber.Ctx, code int, message string, data interface{}) error {
+	return c.JSON(Response{
 		Code:    code,
 		Message: message,
 		Data:    data,
 	})
 }
 
-func Success(c *gin.Context, data interface{}) {
-	Result(c, SUCCESS, "success", data)
+func Success(c fiber.Ctx, data interface{}) error {
+	return Result(c, SUCCESS, "success", data)
 }
 
-func SuccessWithMessage(c *gin.Context, message string, data interface{}) {
-	Result(c, SUCCESS, message, data)
+func SuccessWithMessage(c fiber.Ctx, message string, data interface{}) error {
+	return Result(c, SUCCESS, message, data)
 }
 
-func Fail(c *gin.Context, message string) {
-	Result(c, ERROR, message, nil)
+func Fail(c fiber.Ctx, message string) error {
+	return Result(c, ERROR, message, nil)
 }
 
-func FailWithCode(c *gin.Context, code int, message string) {
-	Result(c, code, message, nil)
+func FailWithCode(c fiber.Ctx, code int, message string) error {
+	return Result(c, code, message, nil)
 }
 
 // Unauthorized 认证失败 HTTP 401
-func Unauthorized(c *gin.Context, message string) {
-	c.JSON(http.StatusUnauthorized, Response{
-		Code:    http.StatusUnauthorized,
+func Unauthorized(c fiber.Ctx, message string) error {
+	return c.Status(fiber.StatusUnauthorized).JSON(Response{
+		Code:    fiber.StatusUnauthorized,
 		Message: message,
 		Data:    nil,
 	})
 }
 
 // Forbidden 权限不足 HTTP 403
-func Forbidden(c *gin.Context, message string) {
-	c.JSON(http.StatusForbidden, Response{
-		Code:    http.StatusForbidden,
+func Forbidden(c fiber.Ctx, message string) error {
+	return c.Status(fiber.StatusForbidden).JSON(Response{
+		Code:    fiber.StatusForbidden,
 		Message: message,
 		Data:    nil,
 	})
 }
 
 // TooManyRequests 请求过于频繁 HTTP 429
-func TooManyRequests(c *gin.Context, message string) {
-	c.JSON(http.StatusTooManyRequests, Response{
-		Code:    http.StatusTooManyRequests,
+func TooManyRequests(c fiber.Ctx, message string) error {
+	return c.Status(fiber.StatusTooManyRequests).JSON(Response{
+		Code:    fiber.StatusTooManyRequests,
 		Message: message,
 		Data:    nil,
 	})
@@ -75,8 +73,8 @@ type PageResult struct {
 	PageSize int         `json:"pageSize"`
 }
 
-func SuccessWithPage(c *gin.Context, items interface{}, total int64, page, pageSize int) {
-	Success(c, PageResult{
+func SuccessWithPage(c fiber.Ctx, items interface{}, total int64, page, pageSize int) error {
+	return Success(c, PageResult{
 		Items:    items,
 		Total:    total,
 		Page:     page,

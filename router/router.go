@@ -1,75 +1,54 @@
 package router
 
 import (
-	"goboot/config"
 	"goboot/internal/handler"
 	"goboot/internal/middleware"
 
-	"github.com/gin-gonic/gin"
+	"github.com/gofiber/fiber/v3"
 )
 
-func SetupRouter() *gin.Engine {
-	gin.SetMode(config.AppConfig.Server.Mode)
+func SetupRouter(app *fiber.App) {
+	app.Use(middleware.Logger())
+	app.Use(middleware.Recovery())
+	app.Use(middleware.Cors())
+	app.Use(middleware.RateLimiter())
 
-	r := gin.New()
-
-	// 设置可信代理
-	if len(config.AppConfig.Server.TrustedProxies) > 0 {
-		r.SetTrustedProxies(config.AppConfig.Server.TrustedProxies)
-	} else {
-		r.SetTrustedProxies(nil) // 不信任任何代理，直接使用远程地址
-	}
-
-	r.Use(middleware.Logger())
-	r.Use(middleware.Recovery())
-	r.Use(middleware.Cors())
-	r.Use(middleware.RateLimiter())
 	// 健康检查接口
-	r.GET("/ping", handler.Ping)
-	r.GET("/health", handler.HealthCheck)
+	app.Get("/ping", handler.Ping)
+	app.Get("/health", handler.HealthCheck)
 
 	userHandler := handler.NewUserHandler()
 	auditHandler := handler.NewAuditHandler()
 	emailHandler := handler.NewEmailHandler()
 
-	api := r.Group("/api")
-	{
-		// Public routes
-		userAuth := api.Group("/auth")
-		userAuth.POST("/register", userHandler.Register)
-		userAuth.POST("/login", userHandler.Login)
-		userAuth.POST("/refreshToken", userHandler.RefreshToken)
-		userAuth.POST("/logout", userHandler.Logout)
-		userAuth.POST("/forgotPassword", emailHandler.ForgotPassword)
-		userAuth.POST("/resetPassword", emailHandler.ResetPassword)
+	api := app.Group("/api")
 
-		// User authenticated routes
-		auth := api.Group("")
-		auth.Use(middleware.JWTAuth())
-		{
-			// User
-			auth.GET("/user/profile", userHandler.GetProfile)
-			auth.POST("/user/updateProfile", userHandler.UpdateProfile)
-			auth.POST("/user/changePassword", userHandler.ChangePassword)
-		}
+	// Public routes
+	userAuth := api.Group("/auth")
+	userAuth.Post("/register", userHandler.Register)
+	userAuth.Post("/login", userHandler.Login)
+	userAuth.Post("/refreshToken", userHandler.RefreshToken)
+	userAuth.Post("/logout", userHandler.Logout)
+	userAuth.Post("/forgotPassword", emailHandler.ForgotPassword)
+	userAuth.Post("/resetPassword", emailHandler.ResetPassword)
 
-		// Admin routes
-		admin := api.Group("/admin")
-		admin.Use(middleware.JWTAuth(), middleware.AdminAuth())
-		{
-			// User management
-			admin.POST("/user/list", userHandler.AdminGetUserList)
-			admin.POST("/user/add", userHandler.AdminCreateUser)
-			admin.GET("/user/detail", userHandler.AdminGetUserDetail)
-			admin.POST("/user/update", userHandler.AdminUpdateUser)
-			admin.POST("/user/delete", userHandler.AdminDeleteUser)
-			admin.POST("/user/resetPassword", userHandler.AdminResetPassword)
-			admin.POST("/user/updateStatus", userHandler.AdminUpdateUserStatus)
+	// User authenticated routes
+	auth := api.Group("", middleware.JWTAuth())
+	auth.Get("/user/profile", userHandler.GetProfile)
+	auth.Post("/user/updateProfile", userHandler.UpdateProfile)
+	auth.Post("/user/changePassword", userHandler.ChangePassword)
 
-			// Audit log
-			admin.POST("/audit/list", auditHandler.GetAuditLogs)
-		}
-	}
+	// Admin routes
+	admin := api.Group("/admin", middleware.JWTAuth(), middleware.AdminAuth())
+	// User management
+	admin.Post("/user/list", userHandler.AdminGetUserList)
+	admin.Post("/user/add", userHandler.AdminCreateUser)
+	admin.Get("/user/detail", userHandler.AdminGetUserDetail)
+	admin.Post("/user/update", userHandler.AdminUpdateUser)
+	admin.Post("/user/delete", userHandler.AdminDeleteUser)
+	admin.Post("/user/resetPassword", userHandler.AdminResetPassword)
+	admin.Post("/user/updateStatus", userHandler.AdminUpdateUserStatus)
 
-	return r
+	// Audit log
+	admin.Post("/audit/list", auditHandler.GetAuditLogs)
 }

@@ -6,65 +6,53 @@ import (
 	"goboot/pkg/utils"
 	"strings"
 
-	"github.com/gin-gonic/gin"
+	"github.com/gofiber/fiber/v3"
 )
 
 var userService = service.NewUserService()
 
-func JWTAuth() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		authHeader := c.GetHeader("Authorization")
+func JWTAuth() fiber.Handler {
+	return func(c fiber.Ctx) error {
+		authHeader := c.Get("Authorization")
 		if authHeader == "" {
-			response.Unauthorized(c, "请先登录")
-			c.Abort()
-			return
+			return response.Unauthorized(c, "请先登录")
 		}
 
 		parts := strings.SplitN(authHeader, " ", 2)
 		if !(len(parts) == 2 && parts[0] == "Bearer") {
-			response.Unauthorized(c, "无效的认证格式")
-			c.Abort()
-			return
+			return response.Unauthorized(c, "无效的认证格式")
 		}
 
 		token := parts[1]
 
 		// 检查token是否在黑名单中
 		if userService.IsTokenBlacklisted(token) {
-			response.Unauthorized(c, "token已失效，请重新登录")
-			c.Abort()
-			return
+			return response.Unauthorized(c, "token已失效，请重新登录")
 		}
 
 		claims, err := utils.ParseToken(token)
 		if err != nil {
-			response.Unauthorized(c, "无效的token")
-			c.Abort()
-			return
+			return response.Unauthorized(c, "无效的token")
 		}
 
-		c.Set("userID", claims.UserID)
-		c.Set("username", claims.Username)
-		c.Set("role", claims.Role)
-		c.Next()
+		c.Locals("userID", claims.UserID)
+		c.Locals("username", claims.Username)
+		c.Locals("role", claims.Role)
+		return c.Next()
 	}
 }
 
-func AdminAuth() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		role, exists := c.Get("role")
-		if !exists {
-			response.Unauthorized(c, "请先登录")
-			c.Abort()
-			return
+func AdminAuth() fiber.Handler {
+	return func(c fiber.Ctx) error {
+		role := c.Locals("role")
+		if role == nil {
+			return response.Unauthorized(c, "请先登录")
 		}
 
 		if role.(int8) != 1 {
-			response.Forbidden(c, "无权限访问")
-			c.Abort()
-			return
+			return response.Forbidden(c, "无权限访问")
 		}
 
-		c.Next()
+		return c.Next()
 	}
 }

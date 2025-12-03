@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"goboot/config"
 	"goboot/internal/model"
@@ -11,11 +10,11 @@ import (
 	"goboot/router"
 	"log"
 	"log/slog"
-	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
+
+	"github.com/gofiber/fiber/v3"
 )
 
 func main() {
@@ -61,25 +60,22 @@ func main() {
 	}
 	logger.Info("Database migrated successfully")
 
+	// Create Fiber app
+	app := fiber.New()
+
 	// Setup router
-	r := router.SetupRouter()
+	router.SetupRouter(app)
 
 	// Initialize and start cron scheduler
 	cronSvc := service.GetCronService()
 	registerCronJobs(cronSvc)
 	cronSvc.Start()
 
-	// Create HTTP server
-	addr := fmt.Sprintf("%s:%d", config.AppConfig.Server.Host, config.AppConfig.Server.Port)
-	srv := &http.Server{
-		Addr:    addr,
-		Handler: r,
-	}
-
 	// Start server in goroutine
+	addr := fmt.Sprintf("%s:%d", config.AppConfig.Server.Host, config.AppConfig.Server.Port)
 	go func() {
 		logger.Info("Server starting", slog.String("addr", addr))
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := app.Listen(addr); err != nil {
 			logger.Error("Failed to start server", slog.Any("error", err))
 		}
 	}()
@@ -94,11 +90,8 @@ func main() {
 	// Stop cron scheduler and wait for running jobs
 	cronSvc.Stop()
 
-	// Give outstanding requests 10 seconds to complete
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	if err := srv.Shutdown(ctx); err != nil {
+	// Graceful shutdown
+	if err := app.Shutdown(); err != nil {
 		logger.Error("Server forced to shutdown", slog.Any("error", err))
 	}
 

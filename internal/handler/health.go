@@ -3,10 +3,9 @@ package handler
 import (
 	"context"
 	"goboot/pkg/database"
-	"net/http"
 	"time"
 
-	"github.com/gin-gonic/gin"
+	"github.com/gofiber/fiber/v3"
 )
 
 type HealthStatus struct {
@@ -15,12 +14,12 @@ type HealthStatus struct {
 }
 
 // HealthCheck 健康检查接口，检查 MySQL 和 Redis 连接状态
-func HealthCheck(c *gin.Context) {
+func HealthCheck(c fiber.Ctx) error {
 	status := HealthStatus{
 		Status: "ok",
 		Checks: make(map[string]string),
 	}
-	httpStatus := http.StatusOK
+	httpStatus := fiber.StatusOK
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
@@ -30,11 +29,11 @@ func HealthCheck(c *gin.Context) {
 	if err != nil {
 		status.Checks["mysql"] = "error: " + err.Error()
 		status.Status = "error"
-		httpStatus = http.StatusServiceUnavailable
+		httpStatus = fiber.StatusServiceUnavailable
 	} else if err := sqlDB.PingContext(ctx); err != nil {
 		status.Checks["mysql"] = "error: " + err.Error()
 		status.Status = "error"
-		httpStatus = http.StatusServiceUnavailable
+		httpStatus = fiber.StatusServiceUnavailable
 	} else {
 		status.Checks["mysql"] = "ok"
 	}
@@ -43,14 +42,14 @@ func HealthCheck(c *gin.Context) {
 	if err := database.RDB.Ping(ctx).Err(); err != nil {
 		status.Checks["redis"] = "error: " + err.Error()
 		status.Status = "error"
-		httpStatus = http.StatusServiceUnavailable
+		httpStatus = fiber.StatusServiceUnavailable
 	} else {
 		status.Checks["redis"] = "ok"
 	}
 
-	c.JSON(httpStatus, status)
+	return c.Status(httpStatus).JSON(status)
 }
 
-func Ping(c *gin.Context) {
-	c.String(http.StatusOK, "pong")
+func Ping(c fiber.Ctx) error {
+	return c.SendString("pong")
 }

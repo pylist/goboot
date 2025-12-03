@@ -1,22 +1,22 @@
 package middleware
 
 import (
+	"context"
 	"fmt"
 	"goboot/config"
 	"goboot/pkg/database"
 	"goboot/pkg/response"
 	"time"
 
-	"github.com/gin-gonic/gin"
+	"github.com/gofiber/fiber/v3"
 )
 
 // RateLimiter 基于 Redis 的滑动窗口限流中间件
-func RateLimiter() gin.HandlerFunc {
-	return func(c *gin.Context) {
+func RateLimiter() fiber.Handler {
+	return func(c fiber.Ctx) error {
 		cfg := config.AppConfig.RateLimit
 		if !cfg.Enabled {
-			c.Next()
-			return
+			return c.Next()
 		}
 
 		// 获取限流 key（优先用户ID，否则用IP）
@@ -26,54 +26,48 @@ func RateLimiter() gin.HandlerFunc {
 		allowed, err := isAllowed(c, key, cfg.Requests, cfg.Window)
 		if err != nil {
 			// Redis 出错时放行，避免影响服务
-			c.Next()
-			return
+			return c.Next()
 		}
 
 		if !allowed {
-			response.TooManyRequests(c, "请求过于频繁，请稍后再试")
-			c.Abort()
-			return
+			return response.TooManyRequests(c, "请求过于频繁，请稍后再试")
 		}
 
-		c.Next()
+		return c.Next()
 	}
 }
 
 // RateLimiterWithConfig 支持自定义限流参数
-func RateLimiterWithConfig(requests int, window int) gin.HandlerFunc {
-	return func(c *gin.Context) {
+func RateLimiterWithConfig(requests int, window int) fiber.Handler {
+	return func(c fiber.Ctx) error {
 		key := getRateLimitKey(c)
 
 		allowed, err := isAllowed(c, key, requests, window)
 		if err != nil {
-			c.Next()
-			return
+			return c.Next()
 		}
 
 		if !allowed {
-			response.TooManyRequests(c, "请求过于频繁，请稍后再试")
-			c.Abort()
-			return
+			return response.TooManyRequests(c, "请求过于频繁，请稍后再试")
 		}
 
-		c.Next()
+		return c.Next()
 	}
 }
 
 // getRateLimitKey 获取限流 key
-func getRateLimitKey(c *gin.Context) string {
+func getRateLimitKey(c fiber.Ctx) string {
 	// 优先使用用户ID（已登录用户）
-	if userID, exists := c.Get("userID"); exists {
-		return fmt.Sprintf("ratelimit:user:%v:%s", userID, c.FullPath())
+	if userID := c.Locals("userID"); userID != nil {
+		return fmt.Sprintf("ratelimit:user:%v:%s", userID, c.Path())
 	}
 	// 未登录使用 IP
-	return fmt.Sprintf("ratelimit:ip:%s:%s", c.ClientIP(), c.FullPath())
+	return fmt.Sprintf("ratelimit:ip:%s:%s", c.IP(), c.Path())
 }
 
 // isAllowed 使用滑动窗口算法检查是否允许请求
-func isAllowed(c *gin.Context, key string, maxRequests int, windowSeconds int) (bool, error) {
-	ctx := c.Request.Context()
+func isAllowed(c fiber.Ctx, key string, maxRequests int, windowSeconds int) (bool, error) {
+	ctx := context.Background()
 	now := time.Now().UnixMilli()
 	window := int64(windowSeconds) * 1000
 

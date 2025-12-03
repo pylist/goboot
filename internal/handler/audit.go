@@ -5,7 +5,7 @@ import (
 	"goboot/pkg/response"
 	"time"
 
-	"github.com/gin-gonic/gin"
+	"github.com/gofiber/fiber/v3"
 )
 
 type AuditHandler struct {
@@ -29,9 +29,9 @@ type AuditLogListRequest struct {
 }
 
 // GetAuditLogs 获取审计日志列表
-func (h *AuditHandler) GetAuditLogs(c *gin.Context) {
+func (h *AuditHandler) GetAuditLogs(c fiber.Ctx) error {
 	var req AuditLogListRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
+	if err := c.Bind().Body(&req); err != nil {
 		req.Page = 1
 		req.PageSize = 10
 	}
@@ -70,9 +70,8 @@ func (h *AuditHandler) GetAuditLogs(c *gin.Context) {
 
 	logs, total, err := h.auditService.GetLogs(serviceReq)
 	if err != nil {
-		response.Fail(c, err.Error())
-		return
+		return response.Fail(c, err.Error())
 	}
 
-	response.SuccessWithPage(c, logs, total, req.Page, req.PageSize)
+	return response.SuccessWithPage(c, logs, total, req.Page, req.PageSize)
 }

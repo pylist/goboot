@@ -14,7 +14,7 @@
 
 | 组件 | 技术 |
 |------|------|
-| Web 框架 | Gin |
+| Web 框架 | Fiber |
 | ORM | GORM |
 | 数据库 | MySQL |
 | 缓存 | Redis |
