@@ -12,6 +12,7 @@ type Config struct {
 	Log       LogConfig       `mapstructure:"log"`
 	RateLimit RateLimitConfig `mapstructure:"rate_limit"`
 	Email     EmailConfig     `mapstructure:"email"`
+	Upload    UploadConfig    `mapstructure:"upload"`
 }
 
 type ServerConfig struct {
@@ -64,16 +65,27 @@ type RateLimitConfig struct {
 }
 
 type EmailConfig struct {
-	Enabled    bool   `mapstructure:"enabled"`     // 是否启用邮件服务
-	Host       string `mapstructure:"host"`        // SMTP 服务器地址
-	Port       int    `mapstructure:"port"`        // SMTP 端口
-	Username   string `mapstructure:"username"`    // 邮箱账号
-	Password   string `mapstructure:"password"`    // 邮箱密码或授权码
-	FromName   string `mapstructure:"from_name"`   // 发件人名称
-	FromAddr   string `mapstructure:"from_addr"`   // 发件人地址
-	SSL        bool   `mapstructure:"ssl"`         // 是否启用 SSL
-	ResetURL   string `mapstructure:"reset_url"`   // 密码重置页面地址
-	ResetExpire int   `mapstructure:"reset_expire"` // 重置链接过期时间（分钟）
+	Enabled     bool   `mapstructure:"enabled"`      // 是否启用邮件服务
+	Host        string `mapstructure:"host"`         // SMTP 服务器地址
+	Port        int    `mapstructure:"port"`         // SMTP 端口
+	Username    string `mapstructure:"username"`     // 邮箱账号
+	Password    string `mapstructure:"password"`     // 邮箱密码或授权码
+	FromName    string `mapstructure:"from_name"`    // 发件人名称
+	FromAddr    string `mapstructure:"from_addr"`    // 发件人地址
+	SSL         bool   `mapstructure:"ssl"`          // 是否启用 SSL
+	ResetURL    string `mapstructure:"reset_url"`    // 密码重置页面地址
+	ResetExpire int    `mapstructure:"reset_expire"` // 重置链接过期时间（分钟）
+}
+
+type UploadConfig struct {
+	Enabled      bool     `mapstructure:"enabled"`        // 是否启用上传服务
+	StorageType  string   `mapstructure:"storage_type"`   // 存储类型: local, oss, s3
+	LocalPath    string   `mapstructure:"local_path"`     // 本地存储路径
+	BaseURL      string   `mapstructure:"base_url"`       // 文件访问URL前缀
+	MaxSize      int      `mapstructure:"max_size"`       // 最大文件大小(MB)
+	MaxImageSize int      `mapstructure:"max_image_size"` // 最大图片大小(MB)
+	AllowedExts  []string `mapstructure:"allowed_exts"`   // 允许的文件扩展名
+	ImageExts    []string `mapstructure:"image_exts"`     // 允许的图片扩展名
 }
 
 var AppConfig *Config

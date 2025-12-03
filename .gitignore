@@ -35,3 +35,5 @@ logs/
 # Temp files
 tmp/
 temp/
+
+__debug*

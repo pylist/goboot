@@ -22,15 +22,17 @@ type AuditLog struct {
 
 // 操作类型常量
 const (
-	ActionLogin         = "login"          // 登录
-	ActionLogout        = "logout"         // 登出
-	ActionRegister      = "register"       // 注册
-	ActionChangePassword = "change_pwd"    // 修改密码
-	ActionResetPassword = "reset_pwd"      // 重置密码
-	ActionCreateUser    = "create_user"    // 创建用户
-	ActionUpdateUser    = "update_user"    // 更新用户
-	ActionDeleteUser    = "delete_user"    // 删除用户
-	ActionUpdateStatus  = "update_status"  // 更新状态
+	ActionLogin          = "login"          // 登录
+	ActionLogout         = "logout"         // 登出
+	ActionRegister       = "register"       // 注册
+	ActionChangePassword = "change_pwd"     // 修改密码
+	ActionResetPassword  = "reset_pwd"      // 重置密码
+	ActionCreateUser     = "create_user"    // 创建用户
+	ActionUpdateUser     = "update_user"    // 更新用户
+	ActionDeleteUser     = "delete_user"    // 删除用户
+	ActionUpdateStatus   = "update_status"  // 更新状态
+	ActionUpload         = "upload"         // 上传文件
+	ActionDelete         = "delete"         // 删除文件
 )
 
 // 模块常量
@@ -38,6 +40,7 @@ const (
 	ModuleAuth  = "auth"  // 认证模块
 	ModuleUser  = "user"  // 用户模块
 	ModuleAdmin = "admin" // 管理模块
+	ModuleFile  = "file"  // 文件模块
 )
 
 // CreateAuditLog 创建审计日志
