@@ -162,18 +162,133 @@ curl http://127.0.0.1:8080/api/user/profile \
 }
 ```
 
+## 参数验证器
+
+项目内置了参数验证器 `pkg/validator`，支持结构体标签验证，自动返回中文错误信息。
+
+### 基本用法
+
+```go
+import "goboot/pkg/validator"
+
+// 定义请求结构体
+type LoginRequest struct {
+    Username string `json:"username" validate:"required,min=3,max=50" label:"用户名"`
+    Password string `json:"password" validate:"required,min=6" label:"密码"`
+    Email    string `json:"email" validate:"email" label:"邮箱"`
+}
+
+// 在 Handler 中使用
+func (h *Handler) Login(c fiber.Ctx) error {
+    var req LoginRequest
+    if err := validator.BindAndValidate(c, &req); err != nil {
+        return err  // 自动返回标准错误响应
+    }
+    // 验证通过，继续处理...
+}
+```
+
+### 验证规则
+
+| 规则 | 说明 | 示例 |
+|------|------|------|
+| `required` | 必填字段 | `validate:"required"` |
+| `min` | 最小长度（字符串）或最小值（数字） | `validate:"min=3"` |
+| `max` | 最大长度（字符串）或最大值（数字） | `validate:"max=50"` |
+| `len` | 精确长度 | `validate:"len=11"` |
+| `range` | 长度/值范围 | `validate:"range=3-50"` |
+| `email` | 邮箱格式 | `validate:"email"` |
+| `phone` | 中国手机号 | `validate:"phone"` |
+| `url` | URL 格式 | `validate:"url"` |
+| `ip` | IP 地址 | `validate:"ip"` |
+| `alpha` | 纯字母 | `validate:"alpha"` |
+| `alphanum` | 字母和数字 | `validate:"alphanum"` |
+| `numeric` | 纯数字字符串 | `validate:"numeric"` |
+| `number` | 数字（含负数和小数） | `validate:"number"` |
+| `lowercase` | 小写字母 | `validate:"lowercase"` |
+| `uppercase` | 大写字母 | `validate:"uppercase"` |
+| `username` | 用户名（字母、数字、下划线） | `validate:"username"` |
+| `password` | 密码强度（必须包含字母和数字） | `validate:"password=6"` |
+| `idcard` | 中国身份证号 | `validate:"idcard"` |
+| `contains` | 包含指定字符串 | `validate:"contains=@"` |
+| `startswith` | 以指定字符串开头 | `validate:"startswith=http"` |
+| `endswith` | 以指定字符串结尾 | `validate:"endswith=.com"` |
+| `oneof` | 枚举值（空格分隔） | `validate:"oneof=male female"` |
+| `eq` | 等于 | `validate:"eq=10"` |
+| `ne` | 不等于 | `validate:"ne=0"` |
+| `gt` | 大于 | `validate:"gt=0"` |
+| `gte` | 大于等于 | `validate:"gte=1"` |
+| `lt` | 小于 | `validate:"lt=100"` |
+| `lte` | 小于等于 | `validate:"lte=99"` |
+| `regex` | 正则表达式 | `validate:"regex=^[a-z]+$"` |
+
+### 组合规则
+
+多个规则用逗号分隔：
+
+```go
+type User struct {
+    Username string `validate:"required,min=3,max=20,username" label:"用户名"`
+    Age      int    `validate:"required,gte=0,lte=150" label:"年龄"`
+    Role     string `validate:"required,oneof=admin user guest" label:"角色"`
+}
+```
+
+### 错误消息
+
+验证器会根据 `label` 标签自动生成中文错误消息：
+
+- `用户名不能为空`
+- `密码长度不能小于6`
+- `邮箱必须是有效的邮箱地址`
+- `手机号必须是有效的手机号`
+- `年龄必须大于或等于0`
+
+### 自定义错误消息
+
+```go
+// 全局设置
+validator.SetMessage("required", "{field}是必填项")
+validator.SetMessage("min", "{field}最少需要{param}个字符")
+```
+
+### 自定义验证规则
+
+```go
+// 注册自定义验证器
+validator.RegisterValidator("even", func(field reflect.Value, param string) bool {
+    if field.Kind() == reflect.Int {
+        return field.Int()%2 == 0
+    }
+    return false
+})
+
+// 使用自定义规则
+type Request struct {
+    Number int `validate:"even" label:"数字"`
+}
+```
+
+### Fiber 集成方法
+
+| 方法 | 说明 |
+|------|------|
+| `validator.BindAndValidate(c, &req)` | 绑定 Body 并验证 |
+| `validator.BindQueryAndValidate(c, &req)` | 绑定 Query 参数并验证 |
+| `validator.MustValidate(c, &req)` | 仅验证（不绑定） |
+| `validator.Validate(&req)` | 直接验证结构体 |
+
 ## 依赖说明
 
 | 依赖 | 用途 |
 |------|------|
-| gin-gonic/gin | Web 框架 |
+| gofiber/fiber | Web 框架 |
 | gorm.io/gorm | ORM 框架 |
 | golang-jwt/jwt | JWT 令牌 |
 | redis/go-redis | Redis 客户端 |
 | spf13/viper | 配置管理 |
 | golang.org/x/crypto | 密码加密 (bcrypt) |
 | natefinch/lumberjack | 日志轮转 |
-| shopspring/decimal | 精确十进制运算 |
 
 ## License
 

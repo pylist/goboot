@@ -5,6 +5,7 @@ import (
 	"goboot/internal/model"
 	"goboot/internal/service"
 	"goboot/pkg/response"
+	"goboot/pkg/validator"
 	"strconv"
 
 	"github.com/gofiber/fiber/v3"
@@ -23,29 +24,22 @@ func NewUserHandler() *UserHandler {
 }
 
 type RegisterRequest struct {
-	Username string `json:"username" validate:"required,min=3,max=50"`
-	Password string `json:"password" validate:"required,min=6,max=20"`
-	Nickname string `json:"nickname"`
-	Phone    string `json:"phone"`
-	Email    string `json:"email"`
+	Username string `json:"username" validate:"required,min=3,max=50" label:"用户名"`
+	Password string `json:"password" validate:"required,min=6,max=20" label:"密码"`
+	Nickname string `json:"nickname" label:"昵称"`
+	Phone    string `json:"phone" validate:"phone" label:"手机号"`
+	Email    string `json:"email" validate:"email" label:"邮箱"`
 }
 
 type LoginRequest struct {
-	Username string `json:"username" validate:"required"`
-	Password string `json:"password" validate:"required"`
+	Username string `json:"username" validate:"required" label:"用户名"`
+	Password string `json:"password" validate:"required" label:"密码"`
 }
 
 func (h *UserHandler) Register(c fiber.Ctx) error {
 	var req RegisterRequest
-	if err := c.Bind().Body(&req); err != nil {
-		return response.Fail(c, "参数错误: "+err.Error())
-	}
-
-	if req.Username == "" || len(req.Username) < 3 || len(req.Username) > 50 {
-		return response.Fail(c, "参数错误: 用户名长度必须在3-50位之间")
-	}
-	if req.Password == "" || len(req.Password) < 6 || len(req.Password) > 20 {
-		return response.Fail(c, "参数错误: 密码长度必须在6-20位之间")
+	if err := validator.BindAndValidate(c, &req); err != nil {
+		return err
 	}
 
 	user, err := h.userService.Register(req.Username, req.Password, req.Nickname, req.Phone, req.Email)
@@ -60,12 +54,8 @@ func (h *UserHandler) Register(c fiber.Ctx) error {
 
 func (h *UserHandler) Login(c fiber.Ctx) error {
 	var req LoginRequest
-	if err := c.Bind().Body(&req); err != nil {
-		return response.Fail(c, "参数错误: "+err.Error())
-	}
-
-	if req.Username == "" || req.Password == "" {
-		return response.Fail(c, "参数错误: 用户名和密码不能为空")
+	if err := validator.BindAndValidate(c, &req); err != nil {
+		return err
 	}
 
 	tokenPair, user, err := h.userService.Login(req.Username, req.Password)
@@ -88,17 +78,13 @@ func (h *UserHandler) Login(c fiber.Ctx) error {
 }
 
 type RefreshTokenRequest struct {
-	RefreshToken string `json:"refreshToken" validate:"required"`
+	RefreshToken string `json:"refreshToken" validate:"required" label:"刷新令牌"`
 }
 
 func (h *UserHandler) RefreshToken(c fiber.Ctx) error {
 	var req RefreshTokenRequest
-	if err := c.Bind().Body(&req); err != nil {
-		return response.Fail(c, "参数错误: "+err.Error())
-	}
-
-	if req.RefreshToken == "" {
-		return response.Fail(c, "参数错误: refreshToken不能为空")
+	if err := validator.BindAndValidate(c, &req); err != nil {
+		return err
 	}
 
 	tokenPair, err := h.userService.RefreshToken(req.RefreshToken)
@@ -146,22 +132,15 @@ func (h *UserHandler) UpdateProfile(c fiber.Ctx) error {
 }
 
 type ChangePasswordRequest struct {
-	OldPassword string `json:"oldPassword" validate:"required"`
-	NewPassword string `json:"newPassword" validate:"required,min=6,max=20"`
+	OldPassword string `json:"oldPassword" validate:"required" label:"原密码"`
+	NewPassword string `json:"newPassword" validate:"required,min=6,max=20" label:"新密码"`
 }
 
 func (h *UserHandler) ChangePassword(c fiber.Ctx) error {
 	userID := c.Locals("userID").(uint)
 	var req ChangePasswordRequest
-	if err := c.Bind().Body(&req); err != nil {
-		return response.Fail(c, "参数错误: "+err.Error())
-	}
-
-	if req.OldPassword == "" {
-		return response.Fail(c, "参数错误: 原密码不能为空")
-	}
-	if len(req.NewPassword) < 6 || len(req.NewPassword) > 20 {
-		return response.Fail(c, "参数错误: 新密码长度必须在6-20位之间")
+	if err := validator.BindAndValidate(c, &req); err != nil {
+		return err
 	}
 
 	err := h.userService.ChangePassword(userID, req.OldPassword, req.NewPassword)
@@ -211,37 +190,37 @@ type AdminUserListRequest struct {
 }
 
 type AdminCreateUserRequest struct {
-	Username string `json:"username" validate:"required,min=3,max=50"`
-	Password string `json:"password" validate:"required,min=6,max=20"`
-	Nickname string `json:"nickname"`
-	Phone    string `json:"phone"`
-	Email    string `json:"email"`
-	Role     int8   `json:"role"`
-	Status   int8   `json:"status"`
+	Username string `json:"username" validate:"required,min=3,max=50" label:"用户名"`
+	Password string `json:"password" validate:"required,min=6,max=20" label:"密码"`
+	Nickname string `json:"nickname" label:"昵称"`
+	Phone    string `json:"phone" validate:"phone" label:"手机号"`
+	Email    string `json:"email" validate:"email" label:"邮箱"`
+	Role     int8   `json:"role" label:"角色"`
+	Status   int8   `json:"status" label:"状态"`
 }
 
 type AdminUpdateUserRequest struct {
-	ID       uint   `json:"id" validate:"required"`
-	Nickname string `json:"nickname"`
-	Phone    string `json:"phone"`
-	Email    string `json:"email"`
-	Avatar   string `json:"avatar"`
-	Role     int8   `json:"role"`
-	Status   int8   `json:"status"`
+	ID       uint   `json:"id" validate:"required" label:"用户ID"`
+	Nickname string `json:"nickname" label:"昵称"`
+	Phone    string `json:"phone" validate:"phone" label:"手机号"`
+	Email    string `json:"email" validate:"email" label:"邮箱"`
+	Avatar   string `json:"avatar" label:"头像"`
+	Role     int8   `json:"role" label:"角色"`
+	Status   int8   `json:"status" label:"状态"`
 }
 
 type AdminUserIDRequest struct {
-	ID uint `json:"id" validate:"required"`
+	ID uint `json:"id" validate:"required" label:"用户ID"`
 }
 
 type AdminResetPasswordRequest struct {
-	ID          uint   `json:"id" validate:"required"`
-	NewPassword string `json:"newPassword" validate:"required,min=6,max=20"`
+	ID          uint   `json:"id" validate:"required" label:"用户ID"`
+	NewPassword string `json:"newPassword" validate:"required,min=6,max=20" label:"新密码"`
 }
 
 type AdminUpdateStatusRequest struct {
-	ID     uint `json:"id" validate:"required"`
-	Status int8 `json:"status"`
+	ID     uint `json:"id" validate:"required" label:"用户ID"`
+	Status int8 `json:"status" label:"状态"`
 }
 
 // AdminGetUserList 获取用户列表
@@ -271,15 +250,8 @@ func (h *UserHandler) AdminGetUserList(c fiber.Ctx) error {
 // AdminCreateUser 创建用户
 func (h *UserHandler) AdminCreateUser(c fiber.Ctx) error {
 	var req AdminCreateUserRequest
-	if err := c.Bind().Body(&req); err != nil {
-		return response.Fail(c, "参数错误: "+err.Error())
-	}
-
-	if req.Username == "" || len(req.Username) < 3 || len(req.Username) > 50 {
-		return response.Fail(c, "参数错误: 用户名长度必须在3-50位之间")
-	}
-	if req.Password == "" || len(req.Password) < 6 || len(req.Password) > 20 {
-		return response.Fail(c, "参数错误: 密码长度必须在6-20位之间")
+	if err := validator.BindAndValidate(c, &req); err != nil {
+		return err
 	}
 
 	// 默认状态为启用
@@ -300,12 +272,8 @@ func (h *UserHandler) AdminCreateUser(c fiber.Ctx) error {
 // AdminUpdateUser 更新用户
 func (h *UserHandler) AdminUpdateUser(c fiber.Ctx) error {
 	var req AdminUpdateUserRequest
-	if err := c.Bind().Body(&req); err != nil {
-		return response.Fail(c, "参数错误: "+err.Error())
-	}
-
-	if req.ID == 0 {
-		return response.Fail(c, "参数错误: id不能为空")
+	if err := validator.BindAndValidate(c, &req); err != nil {
+		return err
 	}
 
 	user, err := h.userService.AdminUpdateUser(req.ID, req.Nickname, req.Phone, req.Email, req.Avatar, req.Role, req.Status)
@@ -321,12 +289,8 @@ func (h *UserHandler) AdminUpdateUser(c fiber.Ctx) error {
 // AdminDeleteUser 删除用户
 func (h *UserHandler) AdminDeleteUser(c fiber.Ctx) error {
 	var req AdminUserIDRequest
-	if err := c.Bind().Body(&req); err != nil {
-		return response.Fail(c, "参数错误: "+err.Error())
-	}
-
-	if req.ID == 0 {
-		return response.Fail(c, "参数错误: id不能为空")
+	if err := validator.BindAndValidate(c, &req); err != nil {
+		return err
 	}
 
 	if err := h.userService.AdminDeleteUser(req.ID); err != nil {
@@ -357,15 +321,8 @@ func (h *UserHandler) AdminGetUserDetail(c fiber.Ctx) error {
 // AdminResetPassword 重置用户密码
 func (h *UserHandler) AdminResetPassword(c fiber.Ctx) error {
 	var req AdminResetPasswordRequest
-	if err := c.Bind().Body(&req); err != nil {
-		return response.Fail(c, "参数错误: "+err.Error())
-	}
-
-	if req.ID == 0 {
-		return response.Fail(c, "参数错误: id不能为空")
-	}
-	if len(req.NewPassword) < 6 || len(req.NewPassword) > 20 {
-		return response.Fail(c, "参数错误: 新密码长度必须在6-20位之间")
+	if err := validator.BindAndValidate(c, &req); err != nil {
+		return err
 	}
 
 	if err := h.userService.AdminResetPassword(req.ID, req.NewPassword); err != nil {
@@ -380,12 +337,8 @@ func (h *UserHandler) AdminResetPassword(c fiber.Ctx) error {
 // AdminUpdateUserStatus 更新用户状态
 func (h *UserHandler) AdminUpdateUserStatus(c fiber.Ctx) error {
 	var req AdminUpdateStatusRequest
-	if err := c.Bind().Body(&req); err != nil {
-		return response.Fail(c, "参数错误: "+err.Error())
-	}
-
-	if req.ID == 0 {
-		return response.Fail(c, "参数错误: id不能为空")
+	if err := validator.BindAndValidate(c, &req); err != nil {
+		return err
 	}
 
 	if err := h.userService.AdminUpdateUserStatus(req.ID, req.Status); err != nil {
